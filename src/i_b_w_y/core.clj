@@ -3,10 +3,6 @@
   (:require [hawk.core :as hawk]
             [clojure.java.io :as io]))
 
-
-
-(def dir-being-watched "/home/morrisseymarr/watched")
-
 (defn filter-files-with-pattern [dir pattern except-for]
   (let [f (clojure.java.io/file dir)]
     (->> (file-seq f)
@@ -14,21 +10,22 @@
           #(let [f-name (.getName %)]
              (and
               (re-matches pattern f-name)
-              (not= except-for f-name)))))))
-
-(def pattern-to-filter #"^mantab.*$")
+              ((complement contains?) except-for f-name)))))))
 
 (defn delete-files [dir pattern except]
   (doseq [x (filter-files-with-pattern dir pattern except)]
     (io/delete-file x)))
 
-(defn when-file-changed [ctx e]
-  (delete-files dir-being-watched pattern-to-filter "mantab.jpg")
-  ctx)
+(defn read-rule [rule-path]
+  (read-string (slurp rule-path)))
 
-(defn watch [dir]
-  (hawk/watch! [{:paths [dir]
-                 :handler when-file-changed}]))
+(defn watch [{:keys [dir pattern exclude]}]
+  (hawk/watch!
+   [{:paths [dir]
+     :handler (fn [ctx e]
+                (delete-files dir pattern exclude))}]))
 
-(watch dir-being-watched)
+;; (watch {:dir "/home/morrisseymarr/watched"
+;;         :pattern #"^mantab.*$"
+;;         :exclude #{"mantab.jpg" "mantab2.jpg"}})
 
