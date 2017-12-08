@@ -25,7 +25,8 @@
      :handler (fn [ctx e]
                 (delete-files dir pattern exclude))}]))
 
-;; (watch {:dir "/home/morrisseymarr/watched"
-;;         :pattern #"^mantab.*$"
-;;         :exclude #{"mantab.jpg" "mantab2.jpg"}})
+(defn -main [& [args]]
+  (when args
+    (watch (read-rule args))
+    (println "ready to watch for you!")))
 
