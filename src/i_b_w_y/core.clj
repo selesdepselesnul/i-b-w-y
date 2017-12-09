@@ -10,7 +10,8 @@
           #(let [f-name (.getName %)]
              (and
               (re-matches pattern f-name)
-              ((complement contains?) except-for f-name)))))))
+              ((complement contains?) except-for f-name))))
+         (map #(.getPath %)))))
 
 (defn delete-files [dir pattern except]
   (doseq [x (filter-files-with-pattern dir pattern except)]
@@ -23,7 +24,10 @@
   (hawk/watch!
    [{:paths [dir]
      :handler (fn [ctx e]
-                (delete-files dir pattern exclude))}]))
+                (when (= :modify (:kind e))
+                  (if (= :last exclude)
+                    (delete-files dir pattern #{(.getName (:file e))})
+                    (delete-files dir pattern exclude))))}]))
 
 (defn -main [& [args]]
   (when args
