@@ -20,17 +20,27 @@
 (defn read-rule [rule-path]
   (read-string (slurp rule-path)))
 
-(defn watch [{:keys [dir pattern exclude]}]
-  (hawk/watch!
-   [{:paths [dir]
-     :handler (fn [ctx e]
-                (when (= :modify (:kind e))
-                  (if (= :last exclude)
-                    (delete-files dir pattern #{(.getName (:file e))})
-                    (delete-files dir pattern exclude))))}]))
+(defn watch [rule]
+  (let [remover (:remover rule) 
+        mover (:mover rule) 
+        not-nil? (comp not nil?)]
+    (when (not-nil? remover)
+      (let [{:keys [pattern dir]} remover]
+        (when (and (not-nil? pattern) (not-nil? dir))
+          (hawk/watch! 
+           [{:paths [dir]
+             :handler
+             (fn [ctx e]
+               (when (= :modify (:kind e))
+                 (delete-files
+                  dir
+                  pattern
+                  #{(.getName (:file e))})))}]))))))
 
 (defn -main [& [args]]
   (when args
-    (watch (read-rule args))
-    (println "ready to watch for you!")))
+    (if (watch (read-rule args))
+      (println "ready to watch for you!")
+      (println "config is not valid"))))
+
 
